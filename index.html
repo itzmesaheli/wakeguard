@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WakeGuard</title>
+<meta name="theme-color" content="#0e1214">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WakeGuard">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <div class="nav-in">
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="nav-brand" href="#top" aria-label="WakeGuard, back to top">
+      <svg viewBox="0 0 512 512" aria-hidden="true">
+        <path d="M82 256 Q256 40 430 256 Q256 472 82 256 Z" fill="none" stroke="currentColor" stroke-width="30" stroke-linejoin="round"/>
+        <circle cx="256" cy="256" r="72" fill="currentColor"/>
+      </svg>
+      <span>WakeGuard</span>
+    </a>
+    <div class="nav-links" id="navMenu">
+      <a href="#monitor">Monitor</a>
+      <a href="#charts">Charts</a>
+      <a href="#report">Report</a>
+      <a href="#trends">Insights</a>
+      <a href="#accuracy">Accuracy</a>
+      <a href="#guide">Guide</a>
+      <a href="#settings">Settings</a>
+      <a href="#safety">Safety</a>
+    </div>
+  </div>
+</nav>
+<div class="wrap" id="top">
+  <header>
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 512 512" aria-hidden="true">
+        <rect width="512" height="512" rx="110" fill="#0e1214"/>
+        <circle class="logo-ring" cx="256" cy="256" r="228" fill="none" stroke="#3ddc97" stroke-opacity=".25" stroke-width="6" stroke-dasharray="4 18" stroke-linecap="round"/>
+        <path class="logo-eye" d="M82 256 Q256 40 430 256 Q256 472 82 256 Z" fill="none" stroke="#3ddc97" stroke-width="24" stroke-linejoin="round"/>
+        <circle class="logo-iris" cx="256" cy="256" r="68" fill="#3ddc97"/>
+        <circle cx="256" cy="256" r="28" fill="#0e1214"/>
+        <circle cx="282" cy="230" r="10" fill="#e8fff5" fill-opacity=".85"/>
+      </svg>
+      <div>
+        <h1>WakeGuard</h1>
+        <span class="tagline">Stay awake. Stay alive.</span>
+      </div>
+    </div>
+    <p>Driver drowsiness alert. Watches your eyes, mouth and head through the camera and warns you before you fall asleep.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <section class="panel cam-panel" id="monitor">
+        <p class="label">Camera</p>
+        <div class="video-box">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="idle" id="idle">
+            <div>
+              <svg class="idle-eye" viewBox="0 0 512 512" aria-hidden="true">
+                <path d="M82 256 Q256 40 430 256 Q256 472 82 256 Z" fill="none" stroke="currentColor" stroke-width="20" stroke-linejoin="round"/>
+                <circle cx="256" cy="256" r="68" fill="currentColor"/>
+                <circle cx="256" cy="256" r="28" fill="#000"/>
+              </svg>
+              <p>Press Start. Mount the phone or laptop so your face is clearly visible, with the camera at about eye level.</p>
+            </div>
+          </div>
+          <div class="hud" id="hud" data-s="idle" aria-hidden="true">
+            <span class="hud-status" id="hudStatus">Off</span>
+            <div class="hud-bar"><i id="hudBar"></i></div>
+            <span class="hud-score" id="hudScore">Fatigue 0 · Alert</span>
+          </div>
+          <div class="wake-text" id="wakeText" hidden aria-live="assertive">WAKE UP!</div>
+          <div class="vision-warn" id="visionWarn" role="status" hidden></div>
+          <div class="cal-guide" id="calGuide" role="status" aria-live="polite" hidden>
+            <div class="cal-card">
+              <p class="cal-step" id="calStep">Step 1 of 3</p>
+              <p class="cal-title" id="calTitle">Get in position</p>
+              <p class="cal-count" id="calCount">3</p>
+              <p class="cal-text" id="calText"></p>
+              <div class="cal-bar"><i id="calBar"></i></div>
+            </div>
+          </div>
+        </div>
+        <p class="err" id="error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel" id="charts">
+        <p class="label">Eye openness this session</p>
+        <canvas id="chart" class="chart" role="img" aria-label="Line chart of eye openness over the session, with alarms, yawns and nods marked"></canvas>
+        <p class="legend">
+          <span><i class="key k-ear"></i>Eye openness</span>
+          <span><i class="key k-thr"></i>Closed threshold</span>
+          <span><i class="key k-alarm"></i>Drowsiness alarm</span>
+          <span><i class="key k-distract"></i>Distraction alarm</span>
+          <span><i class="key k-yawn"></i>Yawn</span>
+          <span><i class="key k-early"></i>Nod / early warning</span>
+        </p>
+      </section>
+
+      <section class="panel">
+        <p class="label">Fatigue score this session</p>
+        <canvas id="chart2" class="chart" role="img" aria-label="Line chart of the fatigue score over the session"></canvas>
+        <p class="legend">
+          <span><i class="key k-fatigue"></i>Fatigue score (0 to 100)</span>
+          <span><i class="key k-thr"></i>Tired from 35</span>
+          <span><i class="key k-alarm"></i>Very tired from 60</span>
+        </p>
+      </section>
+
+      <section class="panel" id="blink">
+        <p class="label">Blink analysis this session</p>
+        <canvas id="chart5" class="chart" role="img" aria-label="Blinks per minute and average blink length over the session"></canvas>
+        <p class="legend">
+          <span><i class="key k-ear"></i>Blinks per minute (bars, left scale)</span>
+          <span><i class="key k-fatigue"></i>Average blink length in milliseconds (line, right scale)</span>
+        </p>
+        <p class="note" id="blinkNote"></p>
+      </section>
+
+      <section class="panel" id="report">
+        <p class="label">Session report</p>
+        <div class="actions">
+          <button class="small" id="csvSession" disabled>Download this session (CSV)</button>
+          <button class="small" id="csvAll" disabled>Download all sessions (CSV)</button>
+          <button class="small" id="tripBtn" disabled>Show last trip report</button>
+          <button class="small" id="clearAll" disabled>Clear history</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Started</th><th>Length</th><th>Alarms</th><th>Distractions</th><th>Yawns</th><th>Nods</th><th>Peak fatigue</th><th>Longest closure</th><th>Blinks/min</th><th>Score</th></tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+        <p class="note" id="historyEmpty">No saved sessions yet. A session is saved when you press Stop and it lasted at least 10 seconds.</p>
+      </section>
+
+      <section class="panel" id="trends">
+        <p class="label">Trends across sessions</p>
+        <canvas id="chart3" class="chart" role="img" aria-label="Chart comparing your saved sessions: drowsiness alarms as bars and peak fatigue as a line"></canvas>
+        <p class="legend">
+          <span><i class="key k-alarm"></i>Drowsiness alarms (bars, left scale)</span>
+          <span><i class="key k-fatigue"></i>Peak fatigue (line, right scale)</span>
+        </p>
+        <p class="note" id="trendNote"></p>
+      </section>
+
+      <section class="panel" id="weekly">
+        <p class="label">Weekly summary and safe driving score</p>
+        <div class="readouts stat-grid" id="weeklyStats"></div>
+        <canvas id="chart4" class="chart" role="img" aria-label="Minutes driven per day as bars and the average safe driving score as a line, for the last 7 days"></canvas>
+        <p class="legend">
+          <span><i class="key k-ear"></i>Minutes driven (bars, left scale)</span>
+          <span><i class="key k-fatigue"></i>Average safe driving score (line, right scale)</span>
+        </p>
+        <p class="note" id="weeklyNote"></p>
+        <p class="note">Safe driving score: starts at 100, then points are taken off for drowsiness alarms, looking away, head nods, yawns and how high your fatigue score got.</p>
+      </section>
+
+      <section class="panel" id="heatmap">
+        <p class="label">When you get drowsy</p>
+        <div class="heat-scroll">
+          <div class="heat" id="heatGrid" role="group" aria-label="Heatmap of tiredness by weekday and hour of the day"></div>
+        </div>
+        <p class="legend heat-legend">
+          <span>Less tired</span><i class="heat-scale"></i><span>More tired</span>
+          <span><i class="heat-dot"></i>An alarm sounded</span>
+          <span><i class="heat-empty"></i>No data</span>
+        </p>
+        <p class="note" id="heatNote"></p>
+      </section>
+
+      <section class="panel" id="accuracy">
+        <p class="label">Accuracy test</p>
+        <p class="note">After a drive, mark each alarm as "Real" (you really were drowsy or distracted) or "False alarm". If you felt drowsy and no alarm sounded, press "Log a missed moment". This tests how well the detector works.</p>
+        <div class="readouts stat-grid" id="accSummary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Alarm type</th><th>Alarms</th><th>Real</th><th>False</th><th>Not marked</th><th>Precision</th></tr>
+            </thead>
+            <tbody id="accBody"></tbody>
+          </table>
+        </div>
+        <p class="note" id="accNote"></p>
+        <p class="label sublabel">Recent alarms</p>
+        <ul class="alist" id="accList"></ul>
+        <p class="note" id="accEmpty">No alarms recorded yet. Alarms from your drives are listed here so you can mark them.</p>
+        <div class="actions">
+          <button class="small" id="missedBtn">Log a missed moment</button>
+          <button class="small" id="accCsv" disabled>Download accuracy table (CSV)</button>
+          <button class="small" id="accClear" disabled>Clear alarm log</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="side">
+      <section class="panel">
+        <p class="label">Status <span class="driver-badge" id="driverBadge"></span></p>
+        <div class="status" id="status" data-s="idle">
+          <span class="dot"></span><span class="status-text" id="statusText">Off</span>
+        </div>
+
+        <div class="fatigue-row">
+          <span>Fatigue <b id="fatigueVal">0</b></span>
+          <span id="fatigueLabel">Alert</span>
+        </div>
+        <div class="meter" aria-hidden="true"><i id="fatigueBar"></i><u style="left:35%"></u><u style="left:60%"></u></div>
+
+        <div class="meter" aria-hidden="true"><i id="earBar"></i><u id="thrMark"></u></div>
+        <div class="readouts">
+          <div class="read"><b id="earVal">--</b><span>Eye openness (EAR)</span></div>
+          <div class="read"><b id="marVal">--</b><span>Mouth openness (MAR)</span></div>
+          <div class="read"><b id="tiltVal">--</b><span>Head tilt (+ = forward)</span></div>
+          <div class="read"><b id="turnVal">--</b><span>Head turn</span></div>
+          <div class="read"><b id="closedVal">0.0 s</b><span>Eyes closed for</span></div>
+          <div class="read"><b id="perclosVal">0%</b><span>Closed, last 60 s</span></div>
+          <div class="read"><b id="blinkVal">0</b><span>Blinks, last 60 s</span></div>
+          <div class="read"><b id="longestVal">0.0 s</b><span>Longest closure</span></div>
+          <div class="read"><b id="yawnVal">0</b><span>Yawns</span></div>
+          <div class="read"><b id="nodVal">0</b><span>Head nods</span></div>
+          <div class="read"><b id="distractVal">0</b><span>Distractions</span></div>
+          <div class="read"><b id="alertVal">0</b><span>Drowsiness alarms</span></div>
+          <div class="read"><b id="driveTimeVal">0:00</b><span>Drive time</span></div>
+          <div class="read"><b id="nextBreakVal">--</b><span>Next break reminder in</span></div>
+        </div>
+      </section>
+
+      <section class="panel controls">
+        <button class="primary" id="startBtn">Start monitoring</button>
+        <button id="calBtn" disabled>Calibrate (eyes open, look ahead)</button>
+        <button class="stop" id="silenceBtn" hidden>I'm awake, silence alarm</button>
+        <button id="driveBtn">Drive mode (full screen)</button>
+        <button id="testBtn">Test alarm sound</button>
+        <button id="installBtn" hidden>Install as an app</button>
+      </section>
+
+      <section class="panel" id="settings">
+        <p class="label">Settings</p>
+
+        <details open>
+          <summary>Eyes and mouth</summary>
+          <div class="setting">
+            <label for="closeSec">Alarm after eyes closed <output id="closeSecOut"></output></label>
+            <input type="range" id="closeSec" min="0.5" max="3" step="0.1" value="1.2">
+          </div>
+          <div class="setting">
+            <label for="thr">Eye-closed threshold <output id="thrOut"></output></label>
+            <input type="range" id="thr" min="0.10" max="0.35" step="0.01" value="0.21">
+          </div>
+          <div class="setting">
+            <label for="yawnThr">Yawn threshold (mouth openness) <output id="yawnThrOut"></output></label>
+            <input type="range" id="yawnThr" min="0.30" max="0.90" step="0.05" value="0.60">
+          </div>
+        </details>
+
+        <details open>
+          <summary>Head and attention</summary>
+          <div class="setting">
+            <label for="nodDeg">Head-nod angle <output id="nodDegOut"></output></label>
+            <input type="range" id="nodDeg" min="8" max="35" step="1" value="15">
+          </div>
+          <div class="setting">
+            <label for="turnDeg">Looking-away angle <output id="turnDegOut"></output></label>
+            <input type="range" id="turnDeg" min="15" max="60" step="1" value="30">
+          </div>
+          <div class="setting">
+            <label for="turnSec">Looking away for <output id="turnSecOut"></output></label>
+            <input type="range" id="turnSec" min="1.5" max="6" step="0.5" value="3">
+          </div>
+          <p class="note">Press Calibrate while looking straight ahead. It sets your normal head position.</p>
+        </details>
+
+        <details>
+          <summary>Alerts</summary>
+          <div class="setting">
+            <label for="vol">Alarm volume <output id="volOut"></output></label>
+            <input type="range" id="vol" min="0.1" max="1" step="0.05" value="0.8">
+          </div>
+          <div class="setting">
+            <label for="sound">Drowsiness alarm sound</label>
+            <select id="sound">
+              <option value="file" selected>My recording (alarm.mp3)</option>
+              <option value="siren">Built-in siren</option>
+            </select>
+            <span class="note" id="soundNote"></span>
+          </div>
+          <div class="setting">
+            <label for="lang">Voice language</label>
+            <select id="lang">
+              <option value="en" selected>English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+            </select>
+            <span class="note" id="langNote"></span>
+            <button class="small" id="voiceTestBtn" type="button">Test voice</button>
+          </div>
+          <label class="check"><input type="checkbox" id="escalate" checked> Make the alarm louder if I do not respond</label>
+          <label class="check"><input type="checkbox" id="voiceCmd"> Say "I'm awake" to silence the alarm</label>
+          <span class="note" id="voiceCmdNote">Uses the microphone and your browser's speech service. Works in Chrome. You will be asked for permission.</span>
+          <label class="check"><input type="checkbox" id="earlyBeep" checked> Soft early-warning beep before the loud alarm</label>
+          <label class="check"><input type="checkbox" id="voice" checked> Speak the alert aloud</label>
+          <label class="check"><input type="checkbox" id="vibrate" checked> Vibrate on phones that support it</label>
+        </details>
+
+        <details>
+          <summary>Driving timer</summary>
+          <div class="setting">
+            <label for="breakEvery">Remind me to take a break</label>
+            <select id="breakEvery">
+              <option value="0">Never</option>
+              <option value="60">Every 1 hour</option>
+              <option value="90">Every 1.5 hours</option>
+              <option value="120" selected>Every 2 hours</option>
+              <option value="180">Every 3 hours</option>
+              <option value="1">Every 1 minute (to test it)</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="preTrip" checked> Ask 3 quick questions before each drive</label>
+          <p class="note">The timer counts from when you press Start. Experts advise a 15 to 20 minute break about every 2 hours, even if you feel fine.</p>
+        </details>
+
+        <details>
+          <summary>Emergency contact</summary>
+          <p class="note">After repeated alarms, a "Take a break" message appears with a button to call this person. The number is saved only in this browser.</p>
+          <div class="setting">
+            <label for="contactName">Contact name</label>
+            <input type="text" id="contactName" maxlength="40" autocomplete="off" placeholder="For example: Maa">
+          </div>
+          <div class="setting">
+            <label for="contactPhone">Phone number</label>
+            <input type="tel" id="contactPhone" maxlength="20" autocomplete="off" placeholder="+91 98765 43210">
+          </div>
+          <div class="setting">
+            <label for="breakAfter">Suggest a break after this many alarms in 10 minutes</label>
+            <input type="number" id="breakAfter" min="2" max="6" step="1" value="3">
+          </div>
+        </details>
+
+        <details>
+          <summary>Drivers</summary>
+          <div class="setting">
+            <label for="profileSel">Active driver</label>
+            <select id="profileSel"></select>
+          </div>
+          <div class="btn-row">
+            <button class="small" id="profileAdd" type="button">Add driver</button>
+            <button class="small" id="profileRename" type="button">Rename</button>
+            <button class="small" id="profileDel" type="button">Remove</button>
+          </div>
+          <p class="note" id="profileNote">Each driver has their own settings, calibration, history and alarm log. Switch drivers before you press Start.</p>
+        </details>
+
+        <details>
+          <summary>Backup and restore</summary>
+          <div class="btn-row">
+            <button class="small" id="exportBtn" type="button">Export all data</button>
+            <button class="small" id="importBtn" type="button">Import data</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+          <p class="note" id="backupNote">Saves your sessions, alarm log, settings and drivers in one file. Importing adds to what you already have.</p>
+        </details>
+
+        <details>
+          <summary>Display and install</summary>
+          <div class="setting">
+            <label for="theme">Screen brightness mode</label>
+            <select id="theme">
+              <option value="auto" selected>Auto (night mode 7 pm to 6 am)</option>
+              <option value="day">Day</option>
+              <option value="night">Night (dim, low glare)</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label for="uiLang">Interface language</label>
+            <select id="uiLang">
+              <option value="en" selected>English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label for="textSize">Text size</label>
+            <select id="textSize">
+              <option value="normal" selected>Normal</option>
+              <option value="large">Large</option>
+              <option value="xlarge">Extra large</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label for="palette">Colours</label>
+            <select id="palette">
+              <option value="standard" selected>Standard (green and red)</option>
+              <option value="cb">Colour-blind friendly (blue and orange)</option>
+            </select>
+          </div>
+          <p class="note">To install on Android, open this page in Chrome over https and tap Install as an app. On iPhone, tap Share, then Add to Home Screen.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" id="guide">
+    <p class="label">How it works and tips</p>
+    <p class="guide-intro">WakeGuard uses your camera to find points on your face. It measures how open your eyes and mouth are and how far your head is tilted or turned. If your eyes stay closed too long, your head drops, or you look away from the road, it sounds an alarm. A soft beep comes first when tiredness is building.</p>
+    <div class="guide-grid">
+      <div class="guide-card">
+        <h3>Camera placement</h3>
+        <ul>
+          <li>Put the phone or laptop at eye level, straight in front of you, about an arm's length away.</li>
+          <li>Keep your whole face in view with both eyes visible. The steering wheel or your hand should not cover it.</li>
+          <li>Use a mount so the camera stays steady.</li>
+        </ul>
+      </div>
+      <div class="guide-card">
+        <h3>Lighting</h3>
+        <ul>
+          <li>Light should fall on your face, not come from behind you. A bright window or the sun behind your head makes your face dark.</li>
+          <li>At night, turn on a dim cabin light. Avoid headlights shining straight into the lens.</li>
+          <li>Take off sunglasses. They hide your eyes, and WakeGuard will warn you if it cannot see them.</li>
+        </ul>
+      </div>
+      <div class="guide-card">
+        <h3>Calibration</h3>
+        <ul>
+          <li>Start runs a short 3-step calibration. Sit as you normally drive and look straight at the road.</li>
+          <li>Press Calibrate again if you move the camera, change your seat or put on glasses.</li>
+          <li>Check Head tilt: it should be near 0° when you look ahead and go positive when your head drops forward.</li>
+        </ul>
+      </div>
+      <div class="guide-card">
+        <h3>Good habits</h3>
+        <ul>
+          <li>Take a 15 to 20 minute break about every 2 hours, even if you feel fine.</li>
+          <li>If alarms keep going off, stop and rest. Coffee only helps for a short time.</li>
+          <li>Press Test alarm sound and Test voice before you drive.</li>
+          <li>This is a helper, not a safety device.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="warnbox" id="safety">
+    This is a learning project, not a safety device. It can miss drowsiness (sunglasses, poor light, camera angle) and can raise false alarms. If you feel sleepy, stop driving and rest. Do not rely on this to stay awake.
+  </div>
+</div>
+
+<div class="break" id="preDialog" role="dialog" aria-modal="true" aria-labelledby="preTitle" hidden>
+  <div class="break-card pre-card">
+    <h2 id="preTitle">Before you drive</h2>
+    <div class="setting">
+      <label for="preSleep">How much did you sleep last night?</label>
+      <select id="preSleep">
+        <option value="8">7 hours or more</option>
+        <option value="6">About 6 hours</option>
+        <option value="5">About 5 hours</option>
+        <option value="4">4 hours or less</option>
+      </select>
+    </div>
+    <div class="setting">
+      <label for="preSleepy">How sleepy do you feel right now?</label>
+      <select id="preSleepy">
+        <option value="1">1 · Very alert</option>
+        <option value="2" selected>2 · Fairly alert</option>
+        <option value="3">3 · Neither alert nor sleepy</option>
+        <option value="4">4 · A bit sleepy</option>
+        <option value="5">5 · Very sleepy</option>
+      </select>
+    </div>
+    <div class="setting">
+      <label for="preLength">How long will you drive?</label>
+      <select id="preLength">
+        <option value="1">Under 1 hour</option>
+        <option value="2" selected>1 to 2 hours</option>
+        <option value="4">2 to 4 hours</option>
+        <option value="6">More than 4 hours</option>
+      </select>
+    </div>
+    <div class="pre-result" id="preResult" data-s="ok">
+      <p class="pre-risk" id="preRisk"></p>
+      <p id="preAdvice"></p>
+    </div>
+    <div class="break-actions">
+      <button class="primary" id="preGo" type="button">Start monitoring</button>
+      <button id="preSkip" type="button">Skip the questions</button>
+      <button id="preCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="printReport" aria-hidden="true"></div>
+
+<div class="break" id="breakDialog" role="alertdialog" aria-modal="true" aria-labelledby="breakTitle" hidden>
+  <div class="break-card">
+    <h2 id="breakTitle">Time to take a break</h2>
+    <p id="breakText"></p>
+    <p class="note" id="breakHint">Add a contact name and number in Settings to get a call button here.</p>
+    <div class="break-actions">
+      <a class="btn" id="breakCall" href="#" hidden>Call my contact</a>
+      <a class="btn" href="https://www.google.com/maps/search/rest+area+near+me" target="_blank" rel="noopener">Find a rest stop</a>
+      <button class="primary" id="breakClose">OK, I'll pull over</button>
+      <button id="breakSnooze" type="button" hidden>Remind me in 15 minutes</button>
+    </div>
+  </div>
+</div>
+
+<div class="break" id="tripDialog" role="dialog" aria-modal="true" aria-labelledby="tripTitle" hidden>
+  <div class="break-card trip-card">
+    <h2 id="tripTitle">Trip report</h2>
+    <p class="trip-verdict" id="tripVerdict"></p>
+    <div class="score-row">
+      <div class="score-ring"><b id="tripScoreVal">0</b><span>/ 100</span></div>
+      <div>
+        <p class="score-word" id="tripScoreWord"></p>
+        <p class="note" id="tripStreak"></p>
+      </div>
+    </div>
+    <div class="readouts stat-grid" id="tripStats"></div>
+    <canvas id="tripSpark" class="spark" role="img" aria-label="Fatigue score over the drive"></canvas>
+    <p id="tripPeak"></p>
+    <p class="trip-tip" id="tripTip"></p>
+    <p class="note" id="tripPre"></p>
+    <div id="tripAlarmsWrap" hidden>
+      <p class="note">Were these alarms right? Mark each one, it feeds the accuracy test.</p>
+      <ul class="alist" id="tripAlarms"></ul>
+    </div>
+    <div class="break-actions">
+      <button id="tripShare" type="button">Share on WhatsApp</button>
+      <button id="tripPrint" type="button">Print or save as PDF</button>
+      <button class="primary" id="tripClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+<script>
+  // Navbar menu (three dashes): opens and closes the list of links
+  (function () {
+    var nav = document.querySelector(".nav");
+    var btn = document.getElementById("navToggle");
+    var menu = document.getElementById("navMenu");
+    if (!nav || !btn || !menu) return;
+    function setOpen(on) {
+      nav.classList.toggle("open", on);
+      btn.setAttribute("aria-expanded", String(on));
+      btn.setAttribute("aria-label", on ? "Close menu" : "Open menu");
+    }
+    btn.addEventListener("click", function () { setOpen(!nav.classList.contains("open")); });
+    menu.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) setOpen(false); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && nav.classList.contains("open")) { setOpen(false); btn.focus(); }
+    });
+  })();
+
+  // Navbar: highlight the link for the section currently on screen
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".nav-links a"));
+    if (!("IntersectionObserver" in window) || !links.length) return;
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) { a.classList.remove("active"); });
+        var a = byId[e.target.id];
+        if (a) a.classList.add("active");
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Object.keys(byId).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) io.observe(el);
+    });
+  })();
+</script>
+</body>
+</html>
